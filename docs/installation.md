@@ -19,7 +19,7 @@ This package has two required parts:
 1. `commands/inspect.md` — the slash command wrapper
 2. `skills/agent-inspect/SKILL.md` — the inspection engine
 
-Install both from the same release. Installing only the command will trigger reduced fallback behavior, not the full inspection method.
+Install both from the same release. Installing only the command is an incomplete setup and does not provide the full inspection method.
 
 Copy the command wrapper into your global OpenCode commands directory:
 
@@ -110,4 +110,4 @@ Put the command file here instead:
 2. This workflow is read-only by default
 3. It asks the model to use parallel subagents when the host platform supports them
 4. It is optimized for audit-style output, not automatic remediation
-5. If subagents are unavailable, the command must enter degraded mode explicitly instead of pretending a full parallel inspection completed
+5. Degraded mode belongs to the skill, not the command wrapper

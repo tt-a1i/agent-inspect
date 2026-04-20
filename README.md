@@ -45,7 +45,7 @@ mkdir -p ~/.config/opencode/skills
 cp -R skills/agent-inspect ~/.config/opencode/skills/agent-inspect
 ```
 
-If you install only `commands/inspect.md`, `/inspect` will run in reduced fallback mode and will not use the full inspection method.
+If you install only `commands/inspect.md`, the setup is incomplete and `/inspect` will not have access to the full inspection method.
 
 Then run it in OpenCode:
 

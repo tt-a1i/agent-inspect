@@ -12,6 +12,8 @@ Its goal is simple:
 
 Unlike a generic code review prompt, `/inspect` checks the current repository across architecture, maintainability, extensibility, reliability, security, testing, engineering quality, and AI-specific risk areas. It also requires the main thread to verify key evidence instead of only repeating subagent conclusions.
 
+The slash command is intentionally thin. The `agent-inspect` skill owns the inspection method, review tone, degraded mode, visual markers, and output structure.
+
 It is designed to run in the primary command context so the command itself can coordinate subagents instead of being wrapped as a subtask first.
 
 If you want a repeatable command that answers the question, "After a lot of AI-assisted changes, is this project still maintainable and extensible?", this project is built for that.
@@ -34,10 +36,16 @@ If you want a repeatable command that answers the question, "After a lot of AI-a
 
 ## Quick Start
 
+Install both the command wrapper and the skill from the same release:
+
 ```bash
 mkdir -p ~/.config/opencode/commands
 cp commands/inspect.md ~/.config/opencode/commands/inspect.md
+mkdir -p ~/.config/opencode/skills
+cp -R skills/agent-inspect ~/.config/opencode/skills/agent-inspect
 ```
+
+If you install only `commands/inspect.md`, `/inspect` will run in reduced fallback mode and will not use the full inspection method.
 
 Then run it in OpenCode:
 
@@ -51,16 +59,33 @@ Then run it in OpenCode:
 /inspect
 ```
 
+## Features
+
+1. Single command entrypoint: `/inspect`
+2. Thin command wrapper; the `agent-inspect` skill owns the inspection method
+3. Parallel subagent inspection instead of a single-threaded generic review
+4. Audit-style output focused on findings, evidence, risks, and verdicts
+5. Output language follows the current user conversation
+6. Explicit degraded mode when subagents are unavailable
+7. Host-platform native subagents by default, not external collaboration frameworks
+8. Primary-context orchestration by the command itself
+9. Blunt but technical review voice: direct, evidence-first, critical of code but not people
+10. Lightweight visual markers such as ✅/❌/⚠️/🟢/🟡/🔴 for scannability
+11. AI-specific risk coverage for prompts, agents, tools, models, configs, and evals
+
 ## 特点
 
 1. 单命令聚合型：只需要 `/inspect`
-2. 多子代理并行：不是单线程泛泛而谈
-3. 审计报告型输出：优先给 findings、证据、风险、结论
-4. 输出语言跟随用户当前对话语言
-5. 子代理不可用时显式降级，不伪装成完整并行审计
-6. 默认使用宿主平台原生子代理，而不是外部协作框架
-7. 运行在主上下文中，由命令自身协调子代理
-8. 默认覆盖 AI 项目更关心的维度：
+2. command 只是入口，`agent-inspect` skill 承载审计方法论
+3. 多子代理并行：不是单线程泛泛而谈
+4. 审计报告型输出：优先给 findings、证据、风险、结论
+5. 输出语言跟随用户当前对话语言
+6. 子代理不可用时显式降级，不伪装成完整并行审计
+7. 默认使用宿主平台原生子代理，而不是外部协作框架
+8. 运行在主上下文中，由命令自身协调子代理
+9. 默认使用 blunt but technical 的审查语气：直接、证据优先、批评代码不攻击人
+10. 使用 ✅/❌/⚠️/🟢/🟡/🔴 等轻量视觉标记提升可读性
+11. 默认覆盖 AI 项目更关心的维度：
    - 可维护性
    - 可扩展性
    - 可靠性
@@ -89,10 +114,12 @@ Then run it in OpenCode:
 
 ## 安装
 
-把 `commands/inspect.md` 复制到：
+复制 command wrapper 和 skill：
 
-```text
-~/.config/opencode/commands/inspect.md
+```bash
+mkdir -p ~/.config/opencode/commands ~/.config/opencode/skills
+cp commands/inspect.md ~/.config/opencode/commands/inspect.md
+cp -R skills/agent-inspect ~/.config/opencode/skills/agent-inspect
 ```
 
 然后在 OpenCode 中输入：
@@ -122,6 +149,8 @@ Then run it in OpenCode:
 3. 只读审计，不擅自改代码
 4. 多维度覆盖，不只盯一个子系统
 5. 子代理失败或排队时，必须显式披露证据覆盖限制
+6. 直接指出问题，不用礼貌废话稀释严重性
+7. emoji 只用于增强扫描效率，不能替代证据、路径和行号
 
 ## 文件结构
 
@@ -129,8 +158,13 @@ Then run it in OpenCode:
 .
 ├── README.md
 ├── LICENSE
+├── CHANGELOG.md
+├── CONTRIBUTING.md
 ├── commands/
 │   └── inspect.md
+├── skills/
+│   └── agent-inspect/
+│       └── SKILL.md
 ├── docs/
 │   └── installation.md
 └── examples/

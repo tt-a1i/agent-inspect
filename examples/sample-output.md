@@ -1,41 +1,63 @@
 # Sample Output
 
-## Executive Summary
+### Executive Summary
 
-The project is in decent shape overall, with clear signs of engineering discipline, but a few high-traffic areas still carry meaningful structural debt. The recent direction of change is broadly healthy, especially around error-boundary tightening and clearer module boundaries, but reliability and verification safeguards are still uneven. There are no obvious critical failures in the sampled areas, yet the codebase still depends too heavily on a few oversized files and implicit runtime behavior.
+🟡 The project is in decent shape overall, but a few high-traffic areas still carry structural debt. Recent changes are moving in the right direction: error boundaries are clearer, module seams are improving, and key paths have regression tests. The inspection ran in degraded mode because one subagent did not return; the findings below are based on two returned subagents plus main-thread source verification. There are no obvious Critical issues in the sampled areas, but the oversized map and service modules are still expensive to reason about.
 
-## Top Findings
+### Top Findings
 
-### High
+#### Critical
 
-1. `frontend/src/components/MapView.tsx:1-6200`
-   The component is too large and still owns map lifecycle management, layer coordination, interaction logic, and panel coupling at the same time. That raises the cost of understanding, modifying, and regression testing any change in this area.
+✅ No obvious Critical issue was found in the inspected sample.
 
-2. `backend/app/services/overview.py:450-930`
-   The service mixes multiple fallback paths and aggregation responsibilities in one place. That makes future extension work and further exception-boundary tightening more regression-prone.
+#### High
 
-### Medium
+🔴 **`frontend/src/components/MapView.tsx:1-6200` — The component is too large to review honestly as one unit.**
 
-1. `frontend/src/lib/api.ts:11-15`
-   The API base strategy is better than before, but if documentation and implementation drift apart, collaborators can still end up with broken local integration assumptions.
+Evidence: the same file still owns map lifecycle management, layer coordination, interaction routing, and panel coupling. That is not just “large”; it means unrelated behavior changes can land in the same diff and become hard to isolate.
 
-2. `backend/app/services/event_geocoder.py:130-170`
-   The degraded-mode boundary is clearer than before, but the distinction between transient failures and programming errors still needs continuous discipline.
+Why it matters: every future map change has a higher chance of turning into accidental behavior drift. Split by real responsibilities before adding more features here.
 
-## Strengths
+🔴 **`backend/app/services/overview.py:450-930` — Fallback and aggregation logic are still tangled.**
 
-1. The project shows real regression-testing discipline in hot-path areas.
-2. The frontend is moving toward better module boundaries instead of continuing to pile everything into one file.
-3. Backend exception handling is starting to follow a more coherent strategy instead of isolated patchwork fixes.
+Evidence: boundary lookup, provider aggregation, degraded responses, and output shaping sit close together. The file makes it hard to tell whether a missing result is a real empty state, an upstream failure, or a programming error.
 
-## Residual Risks
+Why it matters: this is how bugs get hidden behind “resilience.” Error handling that hides bugs is not robustness.
 
-1. Further growth in oversized files may reintroduce duplication or hidden coupling.
-2. If AI-related commands, prompts, and config continue to grow, the project will likely need a more explicit organizational model.
+#### Medium
 
-## Verdict
+🟡 **`frontend/src/lib/api.ts:11-15` — API base behavior depends on documentation staying accurate.**
 
-The current direction is worth continuing. Priority next steps:
-1. Keep shrinking the highest-value oversized files
-2. Preserve consistency in exception-boundary policy
-3. Continue locking structural fixes with regression tests
+Evidence: the implementation is cleaner than before, but collaborator setup still depends on README accuracy.
+
+Why it matters: if docs drift, local integration fails in ways that look like backend bugs.
+
+🟡 **`backend/app/services/event_geocoder.py:130-170` — Degraded-mode boundaries need continued discipline.**
+
+Evidence: transient failures and programming errors are better separated now, but this area still relies on developers preserving that distinction.
+
+Why it matters: broad fallback here would convert real bugs into empty map events.
+
+### Strengths
+
+✅ The project has regression tests around hot-path behavior.
+
+✅ The frontend is moving toward better module boundaries instead of continuing to pile everything into one file.
+
+✅ Backend exception handling is moving from broad catch-all behavior toward clearer failure classification.
+
+### Residual Risks
+
+⚠️ This inspection used degraded mode: Subagent A and Subagent C returned; Subagent B did not return before the report was assembled.
+
+⚠️ The findings come from sampled coverage, not a full repository scan. Security-sensitive code, deployment configuration, and AI evaluation paths should get a dedicated pass before release.
+
+⚠️ If AI-related commands, prompts, and config continue to grow, the project will need stronger organization around prompt/version/eval ownership.
+
+### Verdict
+
+🟡 The current direction is worth continuing, but the project is not out of structural debt. Priority next steps:
+
+1. Split the highest-value oversized files before adding more behavior.
+2. Preserve strict exception-boundary policy; do not reintroduce catch-all fallback as “resilience.”
+3. Add AI eval/golden coverage for prompt-driven behavior before treating AI outputs as stable product behavior.

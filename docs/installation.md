@@ -3,15 +3,15 @@
 ## Prerequisites
 
 1. OpenCode with support for custom markdown commands
-2. A writable commands directory:
+2. A writable commands directory on your machine:
 
 ```text
 ~/.config/opencode/commands/
 ```
 
-If you are not sure whether your OpenCode version supports custom commands, check the official OpenCode commands documentation first.
+If you are not sure whether your OpenCode version supports custom commands, check the official commands documentation first.
 
-## Install as a global OpenCode command
+## Install as a Global OpenCode Command
 
 Copy the command file into your global OpenCode commands directory:
 
@@ -20,7 +20,7 @@ mkdir -p ~/.config/opencode/commands
 cp commands/inspect.md ~/.config/opencode/commands/inspect.md
 ```
 
-Then restart OpenCode if needed and run:
+If OpenCode is already running, restart it once and then run:
 
 ```text
 /inspect
@@ -30,43 +30,44 @@ Then restart OpenCode if needed and run:
 
 After installation:
 
-1. Open OpenCode in any repository
+1. Open OpenCode inside any repository
 2. Type `/inspect`
 3. Confirm the command appears in the command list with its description
-4. Run it once and check that it starts a read-only audit flow instead of editing files
+4. Run it once and verify that it starts a read-only inspection flow instead of editing files
 
-## Verify the command exists
+## Verify the Command File Exists
 
-Check the file is present:
+Check that the file exists:
 
 ```bash
 ls ~/.config/opencode/commands/inspect.md
 ```
 
-This only proves the file exists. It does **not** prove OpenCode has loaded the command, so use the quick verification steps above as well.
+This only proves that the file exists. It does **not** prove that OpenCode has loaded the command, so you should still do the quick verification steps above.
 
-## Optional: project-level override
+## Optional: Project-Level Override
 
-If you want a repository-specific version, create:
+If you want one repository to use its own version, create:
 
 ```text
 .opencode/commands/inspect.md
 ```
 
-Project-level commands can override the global command.
+Project-level commands override the global command.
 
 ## Troubleshooting
 
 ### `/inspect` does not appear in OpenCode
 
-1. Confirm the file exists at `~/.config/opencode/commands/inspect.md`
+1. Confirm that `~/.config/opencode/commands/inspect.md` exists
 2. Restart OpenCode
-3. Check that the file keeps the YAML frontmatter block at the top
+3. Check that the YAML frontmatter block is still present at the top of the file
 
 ### The command exists but behaves unexpectedly
 
-1. Open the installed file and verify it matches the repository version in `commands/inspect.md`
+1. Open the installed file and confirm that it matches the repository version in `commands/inspect.md`
 2. Check whether a project-level `.opencode/commands/inspect.md` is overriding the global version
+3. Note that if subagents are queued, fail, or time out, `/inspect` may enter degraded mode and the report should explicitly disclose evidence-coverage limitations
 
 ### I only want this command for one project
 
@@ -78,6 +79,7 @@ Put the command file here instead:
 
 ## Notes
 
-1. This command is designed to be read-only by default.
-2. It asks the model to use multiple subagents in parallel.
-3. It is optimized for audit-style output, not automatic remediation.
+1. This command is read-only by default
+2. It asks the model to use parallel subagents when the host platform supports them
+3. It is optimized for audit-style output, not automatic remediation
+4. If subagents are unavailable, the command must enter degraded mode explicitly instead of pretending a full parallel inspection completed

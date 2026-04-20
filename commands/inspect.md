@@ -1,107 +1,122 @@
 ---
-description: 多子代理并行审计当前项目代码质量，输出多维审计报告
+description: Run a multi-agent code inspection and return a structured audit report
 subtask: true
 ---
 
 # /inspect
 
-对当前项目做一次**只读、多子代理、多维度**的代码质量审计。
+Run a **read-only, multi-agent, multi-dimensional** code inspection for the current project.
 
 ## Core Requirements
 
-1. 先检查当前工作树和最近提交范围，建立上下文。
-2. 必须并行使用多个子代理，从不同维度做只读评估。
-3. 默认至少覆盖以下维度：
-   - 架构与模块边界
-   - 可维护性
-   - 可扩展性
-   - 可靠性与错误处理
-   - 安全
-   - 测试与工程化
-   - 性能与前端交互
-   - AI 项目特有风险（prompt/agent/tool/model/config/eval）
-4. 主线程必须补查关键证据，不要只转述子代理结论。
-5. 不修改任何代码，除非用户后续明确要求。
-6. 输出语言必须和用户当前对话使用的语言一致。
+1. Inspect the current worktree and recent commit range first to build context.
+2. Use multiple subagents in parallel for read-only evaluation across different dimensions.
+3. By default, cover at least these dimensions:
+   - Architecture and module boundaries
+   - Maintainability
+   - Extensibility
+   - Reliability and error handling
+   - Security
+   - Testing and engineering quality
+   - Performance and frontend interaction behavior
+   - AI-specific project risks (prompt/agent/tool/model/config/eval)
+4. The main thread must verify key evidence directly instead of only restating subagent conclusions.
+5. Do not modify code unless the user explicitly asks for changes afterward.
+6. Match the output language to the language used by the user in the current conversation.
 
 ## Agent Coordination
 
-默认使用 3 个并行子代理，不要把所有维度塞给一个子代理：
+Prefer the **host platform's native subagent / subtask mechanism** for parallel inspection.
 
-1. 子代理 A：架构、模块边界、可维护性、可扩展性
-2. 子代理 B：可靠性、错误处理、安全、AI 项目特有风险
-3. 子代理 C：测试、工程化、性能与前端交互、开发体验
+1. Do not interpret "multiple subagents" as an external collaboration system, external CLI orchestrator, or extra team protocol.
+2. Unless the user explicitly asks for `squad` or another external multi-agent tool, do not use them.
+3. If repository-local rules mention `squad`, collaboration agents, or another multi-agent framework, do not automatically switch to it; `/inspect` still means **host-platform native subagents** by default.
+4. If native host-platform subagents are unavailable, enter the degraded mode defined below instead of using `squad` as a silent substitute.
 
-主线程职责：
+Use 3 parallel subagents by default. Do not stuff every dimension into one agent:
 
-1. 先看当前工作树与最近提交，给子代理提供上下文
-2. 汇总子代理结论后，至少补查 3 类关键证据：
-   - 一个高严重度 finding 的原始代码位置
-   - 一个与测试或工程化相关的配置/脚本位置
-   - 一个你认为最有争议或最可能误判的 finding
-3. 如果主线程补查结果和子代理结论冲突，必须在最终报告里明确指出冲突，而不是悄悄忽略
+1. Subagent A: architecture, module boundaries, maintainability, extensibility
+2. Subagent B: reliability, error handling, security, AI-specific risks
+3. Subagent C: testing, engineering quality, performance, frontend interaction, developer experience
 
-大型仓库抽样规则：
+Main-thread responsibilities:
 
-1. 优先覆盖近期改动最多的目录和核心源代码目录
-2. 如果存在明显的超大文件、核心入口文件、主服务文件或主组件文件，必须抽样阅读
-3. 即使近期改动集中在单一区域，也不要完全跳过测试、配置和工程化文件
+1. Review the current worktree and recent commits first, then provide that context to subagents.
+2. After collecting subagent conclusions, directly verify at least 3 classes of key evidence:
+   - The source location of one high-severity finding
+   - One configuration or script location related to testing or engineering quality
+   - One finding you consider most debatable or most likely to be a false positive
+3. If main-thread verification conflicts with a subagent conclusion, explicitly report the conflict instead of silently resolving it.
+4. If some subagents are queued, fail, time out, or never return, do not pretend that a full parallel inspection completed. Enter **degraded mode** and explicitly report:
+   - Which subagents returned successfully
+   - Which subagents did not return
+   - Which conclusions mainly come from main-thread verification
+5. If the runtime does not support reliable native parallel subagents at all, continue with a read-only inspection only in degraded mode, and say so explicitly in the Executive Summary or Residual Risks.
 
-AI 项目专项检查时，优先关注这些常见位置：
+Sampling rules for large repositories:
+
+1. Prioritize directories with the highest recent change volume and core source directories.
+2. If there are obvious large files, primary entrypoints, main service files, or main component files, sample them directly.
+3. Even if recent changes are concentrated in one area, do not completely skip tests, config files, or engineering-related files.
+
+For AI-project-specific inspection, prioritize these common locations:
 
 1. `prompts/`, `agents/`, `skills/`, `commands/`, `.opencode/`, `.claude/`
-2. 包含 model、tool、provider、prompt、eval、memory、context 等命名的文件
-3. 负责 agent orchestration、tool routing、fallback、retry、config loading 的模块
+2. Files whose names include model, tool, provider, prompt, eval, memory, or context
+3. Modules responsible for agent orchestration, tool routing, fallback, retry, or config loading
 
 ## Audit Focus
 
-在审计 AI 开发项目时，除了常规代码质量，还要特别检查：
+When inspecting AI-assisted software projects, go beyond general code quality and explicitly check:
 
-1. prompt / agent 逻辑是否可维护
-2. 工具调用与模型选择是否耦合过深
-3. 错误恢复、fallback、重试边界是否清晰
-4. 配置、规则、技能、命令是否容易扩展与迁移
-5. 是否存在上下文污染、隐式状态、难验证行为
-6. 是否有足够的验证路径来支撑 AI 修改后的可靠交付
+1. Whether prompt / agent logic is maintainable
+2. Whether tool invocation and model selection are coupled too tightly
+3. Whether error recovery, fallback, and retry boundaries are clear
+4. Whether configs, rules, skills, and commands are easy to extend and migrate
+5. Whether there is context pollution, implicit state, or hard-to-verify behavior
+6. Whether verification paths are strong enough to support reliable delivery after AI-assisted changes
 
 ## Output Format
 
-输出必须使用以下结构：
+The final report must use this structure:
 
 ### Executive Summary
-用 3-6 句概括当前项目的整体代码质量状态。
+Summarize the overall project quality in 3-6 sentences.
 
 ### Top Findings
-按严重级别排序：
+Order findings by severity:
 - Critical
 - High
 - Medium
 - Low
 
-每条 finding 必须包含：
-- 简明问题描述
-- 文件路径
-- 尽量具体的行号
-- 为什么重要
+Each finding must include:
+- A concise problem statement
+- File path
+- As-specific-as-possible line numbers
+- Why it matters
 
 ### Strengths
-列出项目当前做得好的地方，不要只挑问题。
+List what the project is doing well. Do not only look for negatives.
 
 ### Residual Risks
-列出暂未完全证实、但值得继续检查的风险点。
+List risks that are not fully proven yet but still worth further inspection.
+
+If the inspection ran in degraded mode, explicitly describe evidence-coverage limitations here.
 
 ### Verdict
-给出一句结论：
-- 是否值得继续沿当前方向推进
-- 当前最值得优先处理的 1-3 个方向
+Give a concise final judgment:
+- Whether the project is worth continuing on its current path
+- The top 1-3 priorities to address next
 
 ## Execution Notes
 
-1. 如果仓库很大，优先抽样关键目录与近期改动最多的区域。
-2. Findings 优先于摘要，避免空泛评价。
-3. 若没有发现严重问题，要明确说“未发现明显高严重度问题”，不要强行挑刺。
-4. 如果用户传入额外参数 `$ARGUMENTS`，把它当作本次审计的补充重点，但不要缩窄默认审计维度。
-5. 保持语言一致性：用户用中文提问就输出中文，用户用英文提问就输出英文，除非用户明确指定其他语言。
-6. 如果你的结论主要来自抽样而不是完整覆盖，要在 Residual Risks 或 Verdict 中明确说明这一点。
+1. If the repository is large, prioritize key directories and the most recently changed areas.
+2. Findings come before summary. Avoid generic evaluation.
+3. If no serious issues are found, say so explicitly instead of inventing problems.
+4. If the user passes extra context in `$ARGUMENTS`, treat it as an additional focus area without narrowing the default audit dimensions.
+5. Keep the output language aligned with the user's language unless the user explicitly requests another language.
+6. If your conclusions mainly come from sampling instead of broad coverage, say so in Residual Risks or Verdict.
+7. If your conclusions mainly come from main-thread verification instead of multiple successful subagent returns, say so explicitly.
 
-用户补充重点：$ARGUMENTS
+User-supplied extra focus: $ARGUMENTS

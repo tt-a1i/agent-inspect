@@ -1,5 +1,21 @@
 # agent-inspect
 
+## English
+
+`agent-inspect` is a global slash command for OpenCode: `/inspect`.
+
+Its goal is simple:
+
+- trigger a **multi-agent, parallel** code inspection in any project
+- return a **structured, evidence-oriented** audit report
+- work especially well for staged reviews of AI-assisted software projects
+
+Unlike a generic code review prompt, `/inspect` checks the current repository across architecture, maintainability, extensibility, reliability, security, testing, engineering quality, and AI-specific risk areas. It also requires the main thread to verify key evidence instead of only repeating subagent conclusions.
+
+If you want a repeatable command that answers the question, "After a lot of AI-assisted changes, is this project still maintainable and extensible?", this project is built for that.
+
+## 中文
+
 `agent-inspect` 是一个给 OpenCode 用的全局 slash command：`/inspect`。
 
 它的目标很简单：
@@ -19,6 +35,12 @@ mkdir -p ~/.config/opencode/commands
 cp commands/inspect.md ~/.config/opencode/commands/inspect.md
 ```
 
+Then run it in OpenCode:
+
+```text
+/inspect
+```
+
 然后在 OpenCode 中输入：
 
 ```text
@@ -31,7 +53,9 @@ cp commands/inspect.md ~/.config/opencode/commands/inspect.md
 2. 多子代理并行：不是单线程泛泛而谈
 3. 审计报告型输出：优先给 findings、证据、风险、结论
 4. 输出语言跟随用户当前对话语言
-5. 默认覆盖 AI 项目更关心的维度：
+5. 子代理不可用时显式降级，不伪装成完整并行审计
+6. 默认使用宿主平台原生子代理，而不是外部协作框架
+7. 默认覆盖 AI 项目更关心的维度：
    - 可维护性
    - 可扩展性
    - 可靠性
@@ -55,6 +79,8 @@ cp commands/inspect.md ~/.config/opencode/commands/inspect.md
 3. Strengths
 4. Residual Risks
 5. Verdict
+
+如果运行环境里部分子代理排队、失败或没有返回，`/inspect` 也不会假装“已经完成完整并行审计”。它会进入降级模式，并在报告里明确说明当前有哪些结论主要来自主线程补查与抽样证据。
 
 ## 安装
 
@@ -90,6 +116,7 @@ cp commands/inspect.md ~/.config/opencode/commands/inspect.md
 2. 先 findings，后概览
 3. 只读审计，不擅自改代码
 4. 多维度覆盖，不只盯一个子系统
+5. 子代理失败或排队时，必须显式披露证据覆盖限制
 
 ## 文件结构
 

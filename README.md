@@ -1,4 +1,4 @@
-# opencode-inspect
+# agent-inspect
 
 一个给 OpenCode 用的全局 slash command：`/inspect`。
 

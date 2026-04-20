@@ -1,6 +1,5 @@
 ---
 description: Run a multi-agent code inspection and return a structured audit report
-subtask: true
 ---
 
 # /inspect

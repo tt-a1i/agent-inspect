@@ -12,6 +12,8 @@ Its goal is simple:
 
 Unlike a generic code review prompt, `/inspect` checks the current repository across architecture, maintainability, extensibility, reliability, security, testing, engineering quality, and AI-specific risk areas. It also requires the main thread to verify key evidence instead of only repeating subagent conclusions.
 
+It is designed to run in the primary command context so the command itself can coordinate subagents instead of being wrapped as a subtask first.
+
 If you want a repeatable command that answers the question, "After a lot of AI-assisted changes, is this project still maintainable and extensible?", this project is built for that.
 
 ## 中文
@@ -25,6 +27,8 @@ If you want a repeatable command that answers the question, "After a lot of AI-a
 - 特别适合 AI 辅助开发项目的阶段性复评
 
 和普通 code review prompt 不同，`/inspect` 默认会从架构、可维护性、可扩展性、可靠性、安全、测试与工程化，以及 AI 项目特有风险等多个维度同时检查当前仓库，并要求主线程补查关键证据，而不是只转述子代理结论。
+
+它的设计前提是运行在主上下文里，由命令本身负责协调子代理，而不是先把自己包装成子任务再去分派别人。
 
 如果你想把“AI 写了很多代码之后，现在这个项目到底还能不能继续维护和扩展”变成一个可重复执行的 OpenCode 命令，这个项目就是为这个目的准备的。
 
@@ -55,7 +59,8 @@ Then run it in OpenCode:
 4. 输出语言跟随用户当前对话语言
 5. 子代理不可用时显式降级，不伪装成完整并行审计
 6. 默认使用宿主平台原生子代理，而不是外部协作框架
-7. 默认覆盖 AI 项目更关心的维度：
+7. 运行在主上下文中，由命令自身协调子代理
+8. 默认覆盖 AI 项目更关心的维度：
    - 可维护性
    - 可扩展性
    - 可靠性

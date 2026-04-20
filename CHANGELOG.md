@@ -6,6 +6,7 @@
 - Required final reports to disclose when findings mainly come from main-thread verification instead of successful parallel subagents
 - Updated README and installation docs to explain degraded mode and make setup guidance clearer
 - Explicitly required host-platform native subagents instead of external multi-agent tools like squad by default
+- Removed `subtask: true` so `/inspect` runs in the primary context and can orchestrate subagents correctly
 
 ## v0.1.0
 

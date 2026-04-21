@@ -1,63 +1,174 @@
 # Sample Output
 
+**Scope:** full repository read, default exclusions applied (`node_modules/`, `dist/`, `build/`, `.next/`, lock files, binary fixtures).
+
+**Subagents:** 7 / 7 returned (default mode). Complete coverage achieved; no files skipped.
+
 ### Executive Summary
 
-🟡 The project is in decent shape overall, but a few high-traffic areas still carry structural debt. Recent changes are moving in the right direction: error boundaries are clearer, module seams are improving, and key paths have regression tests. The inspection ran in degraded mode because one subagent did not return; the findings below are based on two returned subagents plus main-thread source verification. There are no obvious Critical issues in the sampled areas, but the oversized map and service modules are still expensive to reason about.
+🟡 Functional but fragile overall. **Reliability and error handling** is the weakest dimension at 🟠 2 — two separate service modules share the same bug-hiding `except` pattern. Architecture and maintainability both sit at 🟡 3, dragged down by one oversized frontend component. Extensibility, security, and testing are healthy (🟢 4). No Critical findings in this pass. The default 7-subagent inspection ran without degradation and every in-scope file was read in full.
+
+### Dimension Scorecard
+
+- **Architecture and module boundaries** — 🟡 3 Functional but fragile
+  Rationale: `MapView.tsx` tangles four unrelated responsibilities (H-1); module seams elsewhere in `frontend/src/` are clean.
+  Scored by: Subagent-architecture, main-thread-verified.
+
+- **Maintainability** — 🟡 3 Functional but fragile
+  Rationale: One oversized hot-path file (H-1) dominates. Surrounding code is readable, consistently styled, and passes lint.
+  Scored by: Subagent-maintainability, main-thread-verified.
+
+- **Extensibility** — 🟢 4 Healthy
+  Rationale: Provider aggregation and layer registry are pluggable; direct inspection of `backend/app/services/providers/*.py` and `frontend/src/map/layers/*.ts` confirms new sources/layers can be added without core edits. No open findings in this dimension.
+  Scored by: Subagent-extensibility, main-thread-verified.
+
+- **Reliability and error handling** — 🟠 2 Significant debt
+  Rationale: Broad `except Exception` in `overview.py` hides programmer errors behind "resilience" (H-2); the same pattern survives in `event_geocoder.py` (M-2). Two separate files repeating the same anti-pattern is the clearest form of structural debt in this category.
+  Scored by: Subagent-reliability proposed 🟡 3; main-thread override to 🟠 2. Reason: the subagent scored each file independently; the override reflects that the pattern repeats across files, which is worse than one instance.
+
+- **Security** — 🟢 4 Healthy
+  Rationale: No hardcoded credentials, auth middleware consistent across routers, input validation at request boundaries. Direct inspection of `backend/app/auth/*.py` and `backend/app/routers/*.py` found no exploitable paths. No open findings in this dimension.
+  Scored by: Subagent-security, main-thread-verified.
+
+- **Testing and engineering quality** — 🟢 4 Healthy
+  Rationale: Regression tests cover hot paths; CI gates correctness (type-check, unit, integration), not only style. Only soft spot is doc-dependent local-dev setup (M-1).
+  Scored by: Subagent-testing, main-thread-verified.
+
+- **AI-specific project risks** — 🟡 3 Functional but fragile
+  Rationale: `prompts/` and `skills/` are organized and versioned in git, but no evals or goldens guard prompt changes — a bad prompt edit can ship silently. Prompt-version ownership is implicit.
+  Scored by: Subagent-ai-risks, main-thread-verified.
 
 ### Top Findings
 
 #### Critical
 
-✅ No obvious Critical issue was found in the inspected sample.
+✅ No Critical issue was found in this pass.
 
 #### High
 
-🔴 **`frontend/src/components/MapView.tsx:1-6200` — The component is too large to review honestly as one unit.**
+🔴 **H-1 — `frontend/src/components/MapView.tsx` owns four unrelated responsibilities in one 6 200-line file.**
 
-Evidence: the same file still owns map lifecycle management, layer coordination, interaction routing, and panel coupling. That is not just “large”; it means unrelated behavior changes can land in the same diff and become hard to isolate.
+- Severity: High · Blocking: no · Confidence: high · Verification: main-thread-verified
+- Location: `frontend/src/components/MapView.tsx:1-6200` (whole file inspected via split passes)
 
-Why it matters: every future map change has a higher chance of turning into accidental behavior drift. Split by real responsibilities before adding more features here.
+Evidence (`frontend/src/components/MapView.tsx:1-40`, top of file):
 
-🔴 **`backend/app/services/overview.py:450-930` — Fallback and aggregation logic are still tangled.**
+```tsx
+export function MapView(props: MapViewProps) {
+  // map lifecycle
+  useEffect(() => { initMap(containerRef.current, props.config); return () => destroyMap(); }, []);
+  // layer coordination
+  const layers = useLayerRegistry(props.layers);
+  // interaction routing
+  const dispatch = useInteractionDispatch(layers, props.onEvent);
+  // panel coupling
+  const panelState = usePanelSync(props.panel, layers, dispatch);
+  // ...
+```
 
-Evidence: boundary lookup, provider aggregation, degraded responses, and output shaping sit close together. The file makes it hard to tell whether a missing result is a real empty state, an upstream failure, or a programming error.
+Evidence (`frontend/src/components/MapView.tsx:4820-4835`, mid-file — same four concerns still interleaved):
 
-Why it matters: this is how bugs get hidden behind “resilience.” Error handling that hides bugs is not robustness.
+```tsx
+function handleCanvasClick(e: MouseEvent) {
+  persistLastClick(e);                     // persistence
+  dispatch({ kind: 'select',               // interaction routing
+             payload: resolveHit(e, layers) });
+  requestPanelRefresh();                   // panel coupling
+  scheduleLifecycleTick();                 // map lifecycle
+}
+```
+
+File totals 6 200 lines (`wc -l`); the four responsibilities above interleave throughout the split passes that covered the whole file.
+
+Why it matters: four distinct concerns share one module. Unrelated behavior changes land in the same diff and cannot be isolated for review, rollback, or regression bisection. Every future map change has a higher chance of accidental behavior drift.
+
+Recommendation: extract layer coordination (`useLayerRegistry`) and panel sync (`usePanelSync`) into sibling components that only talk to `MapView` through props; keep the root at lifecycle and interaction routing. Do this before adding new features in this file.
+
+🔴 **H-2 — `backend/app/services/overview.py` tangles fallback, aggregation, and output shaping; broad `except` hides real failures.**
+
+- Severity: High · Blocking: yes · Confidence: high · Verification: cross-subagent-corroborated (architecture + reliability)
+- Location: `backend/app/services/overview.py:450-930`
+- CWE: [CWE-755](https://cwe.mitre.org/data/definitions/755.html) (Improper Handling of Exceptional Conditions)
+
+Evidence (`backend/app/services/overview.py:612-640`):
+
+```python
+try:
+    providers = [p.fetch(region) for p in self.providers]
+    result = aggregate(providers, boundary=lookup_boundary(region))
+    return shape_for_api(result)
+except Exception:
+    # degraded mode — keep the UI alive
+    return EMPTY_OVERVIEW
+```
+
+Why it matters: a bare `except Exception` at this layer swallows programmer errors (e.g. `KeyError` from a typo) and upstream transport failures indistinguishably, and returns the same empty payload as a legitimately empty region. Observability, alerting, and user-visible "no data here" states all collapse into one branch. This is how bugs get hidden behind "resilience".
+
+Recommendation (in preferred order): (a) narrow the except to transport/timeout errors only and re-raise the rest so tests and sentry catch them; (b) split fallback, aggregation, and output shaping into three functions so each one's failure mode is localized; (c) return a discriminated result (`Empty | Degraded | Ok`) so the UI can distinguish "nothing here" from "upstream down".
 
 #### Medium
 
-🟡 **`frontend/src/lib/api.ts:11-15` — API base behavior depends on documentation staying accurate.**
+🟡 **M-1 — `frontend/src/lib/api.ts` collaborator setup depends on README accuracy.**
 
-Evidence: the implementation is cleaner than before, but collaborator setup still depends on README accuracy.
+- Severity: Medium · Blocking: no · Confidence: medium · Verification: subagent-only
+- Location: `frontend/src/lib/api.ts:11-15`
 
-Why it matters: if docs drift, local integration fails in ways that look like backend bugs.
+Evidence (`frontend/src/lib/api.ts:11-15`):
 
-🟡 **`backend/app/services/event_geocoder.py:130-170` — Degraded-mode boundaries need continued discipline.**
+```ts
+export const API_BASE =
+  import.meta.env.VITE_API_BASE ??
+  // see README §Local Dev for the expected fallback
+  "http://localhost:8000";
+```
 
-Evidence: transient failures and programming errors are better separated now, but this area still relies on developers preserving that distinction.
+Why it matters: the implementation is cleaner than before, but the default URL and its relationship to README instructions mean that if docs drift, new collaborators hit integration failures that *look* like backend bugs. The code silently encodes a contract that lives elsewhere.
 
-Why it matters: broad fallback here would convert real bugs into empty map events.
+Recommendation: add a startup log line that echoes the resolved `API_BASE` and its source (env var vs. default), so the contract becomes self-describing at runtime instead of doc-dependent.
+
+🟡 **M-2 — `backend/app/services/event_geocoder.py` degraded-mode boundary survives only by convention.**
+
+- Severity: Medium · Blocking: no · Confidence: medium · Verification: main-thread-verified
+
+Evidence (`backend/app/services/event_geocoder.py:130-170`, abbreviated):
+
+```python
+def geocode(event):
+    try:
+        return _resolve(event)        # transient upstream failure → fall back
+    except UpstreamTimeout:
+        return None
+    except Exception as exc:          # programmer errors leak here today
+        logger.warning("geocode failed: %s", exc)
+        return None
+```
+
+Why it matters: transient failures and programming errors are better separated than before, but the broad `except Exception` is one refactor away from reintroducing the same "hide the bug" pattern as H-2. Future maintainers cannot tell from the code alone that the second branch is intended to be a last-resort, not a general safety net.
+
+Recommendation: replace the trailing `except Exception` with an explicit list of known failure classes, and let anything else crash the task so it surfaces in error reporting. Same root pattern as H-2 — fixing one without the other leaves the broader invariant fragile.
 
 ### Strengths
 
-✅ The project has regression tests around hot-path behavior.
+✅ All 7 subagents returned; complete coverage achieved without entering over-budget degraded mode.
 
-✅ The frontend is moving toward better module boundaries instead of continuing to pile everything into one file.
+✅ Regression tests cover hot-path behavior; CI gates correctness rather than style alone.
 
-✅ Backend exception handling is moving from broad catch-all behavior toward clearer failure classification.
+✅ Frontend is moving toward better module boundaries outside of `MapView.tsx`.
+
+✅ Provider and layer abstractions make data sources genuinely pluggable (see Extensibility scorecard entry).
 
 ### Residual Risks
 
-⚠️ This inspection used degraded mode: Subagent A and Subagent C returned; Subagent B did not return before the report was assembled.
+⚠️ Scope exclusions applied: `node_modules/`, `vendor/`, `dist/`, `build/`, `.next/`, lock files, and binary fixtures were excluded per Coverage Rules §3. The scorecard scores reflect in-scope code only.
 
-⚠️ The findings come from sampled coverage, not a full repository scan. Security-sensitive code, deployment configuration, and AI evaluation paths should get a dedicated pass before release.
+⚠️ AI-evaluation paths (prompt goldens, version ownership) are under-tested today. If `prompts/` and `skills/` keep growing, add evals before the next audit or the AI-risks score will drift downward.
 
-⚠️ If AI-related commands, prompts, and config continue to grow, the project will need stronger organization around prompt/version/eval ownership.
+⚠️ Reliability scored 🟠 2 based on two files sharing the same anti-pattern. If additional service modules adopt the same broad-`except` style, expect the score to move toward 🔴 1.
 
 ### Verdict
 
-🟡 The current direction is worth continuing, but the project is not out of structural debt. Priority next steps:
+🟡 The project is worth continuing, but reliability is the dimension that should not be allowed to slip further. Priority next steps:
 
-1. Split the highest-value oversized files before adding more behavior.
-2. Preserve strict exception-boundary policy; do not reintroduce catch-all fallback as “resilience.”
-3. Add AI eval/golden coverage for prompt-driven behavior before treating AI outputs as stable product behavior.
+1. Fix **H-2** first — narrowing the broad `except` in `overview.py` closes the largest active "bugs hidden behind resilience" surface and is a small diff.
+2. Apply the same pattern fix to **M-2**; leaving it half-done keeps the invariant fragile and preserves the 🟠 2 reliability score.
+3. Split **H-1** before adding more behavior to `MapView.tsx`. Non-blocking for release; blocking for anyone who needs to change map behavior safely.

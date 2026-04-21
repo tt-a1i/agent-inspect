@@ -1,7 +1,6 @@
 ---
 name: agent-inspect
 description: Use this skill whenever the user asks to inspect, audit, review, assess, or evaluate a codebase/project for maintainability, extensibility, architecture, reliability, security, testing, engineering quality, or AI-agent/prompt/tooling risks. Also use this when invoked by `/inspect`. It performs a read-only, evidence-backed, multi-agent project inspection with complete file coverage, per-dimension scoring, blunt technical findings, and explicit degraded-mode disclosure.
-compatibility: opencode
 ---
 
 # Agent Inspect

@@ -2,7 +2,7 @@
 
 ## English
 
-`agent-inspect` is a global slash command for OpenCode: `/inspect`.
+`agent-inspect` is a global slash command (`/inspect`) for **OpenCode** and **Claude Code**. **Codex** support is planned.
 
 Its goal is simple:
 
@@ -20,7 +20,7 @@ If you want a repeatable command that answers the question, "After a lot of AI-a
 
 ## 中文
 
-`agent-inspect` 是一个给 OpenCode 用的全局 slash command：`/inspect`。
+`agent-inspect` 是一个全局 slash command（`/inspect`），支持 **OpenCode** 和 **Claude Code**，**Codex** 支持在规划中。
 
 它的目标很简单：
 
@@ -34,26 +34,39 @@ If you want a repeatable command that answers the question, "After a lot of AI-a
 
 如果你想把“AI 写了很多代码之后，现在这个项目到底还能不能继续维护和扩展”变成一个可重复执行的 OpenCode 命令，这个项目就是为这个目的准备的。
 
+## Platform Support
+
+| Platform | Status | Install paths |
+|----------|--------|---------------|
+| OpenCode | ✅ supported | `~/.config/opencode/commands/` + `~/.config/opencode/skills/` |
+| Claude Code | ✅ supported | `~/.claude/commands/` + `~/.claude/skills/` |
+| Codex | 🚧 planned | — (contributions welcome, see `docs/installation.md`) |
+
+The skill body is platform-neutral: it does not depend on any OpenCode-specific API. Only the install paths differ.
+
 ## Quick Start
 
-Install both the command wrapper and the skill from the same release:
+Install both the command wrapper and the skill from the same release. Pick the block that matches your platform.
+
+**OpenCode**
 
 ```bash
-mkdir -p ~/.config/opencode/commands
+mkdir -p ~/.config/opencode/commands ~/.config/opencode/skills
 cp commands/inspect.md ~/.config/opencode/commands/inspect.md
-mkdir -p ~/.config/opencode/skills
 cp -R skills/agent-inspect ~/.config/opencode/skills/agent-inspect
+```
+
+**Claude Code**
+
+```bash
+mkdir -p ~/.claude/commands ~/.claude/skills
+cp commands/inspect.md ~/.claude/commands/inspect.md
+cp -R skills/agent-inspect ~/.claude/skills/agent-inspect
 ```
 
 If you install only `commands/inspect.md`, the setup is incomplete and `/inspect` will not have access to the full inspection method.
 
-Then run it in OpenCode:
-
-```text
-/inspect
-```
-
-然后在 OpenCode 中输入：
+Then run it in your CLI:
 
 ```text
 /inspect
@@ -114,7 +127,9 @@ Then run it in OpenCode:
 
 ## 安装
 
-复制 command wrapper 和 skill：
+选择对应的平台复制 command wrapper 和 skill：
+
+**OpenCode**
 
 ```bash
 mkdir -p ~/.config/opencode/commands ~/.config/opencode/skills
@@ -122,7 +137,17 @@ cp commands/inspect.md ~/.config/opencode/commands/inspect.md
 cp -R skills/agent-inspect ~/.config/opencode/skills/agent-inspect
 ```
 
-然后在 OpenCode 中输入：
+**Claude Code**
+
+```bash
+mkdir -p ~/.claude/commands ~/.claude/skills
+cp commands/inspect.md ~/.claude/commands/inspect.md
+cp -R skills/agent-inspect ~/.claude/skills/agent-inspect
+```
+
+**Codex**：暂未支持，规划中。欢迎贡献，详见 `docs/installation.md`。
+
+任一平台装完后，在对应 CLI 中输入：
 
 ```text
 /inspect

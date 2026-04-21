@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.4.1
+
+- Added official **Claude Code** support. The skill body was already platform-neutral; only install paths and docs needed to change.
+- Added install steps for Claude Code at `~/.claude/commands/` and `~/.claude/skills/` in README and `docs/installation.md`.
+- Added a Platform Support table (OpenCode ✅ / Claude Code ✅ / Codex 🚧 planned) to README and installation docs.
+- Removed the `compatibility: opencode` frontmatter field from `skills/agent-inspect/SKILL.md`. The skill is cross-platform by default; the field was informational and misleading.
+- Stubbed **Codex** as a planned platform in `docs/installation.md` with a note on what's needed (confirmed paths + native-subagent concurrency verification) for contributors.
+- Clarified in Claude Code installation notes that `/inspect` uses the native `Task` tool for its 7 per-dimension subagents, and must not be substituted by the `squad` plugin or other external multi-agent frameworks.
+
 ## v0.4.0
 
 - Default subagent count raised from 3 to 7: one subagent per dimension. This keeps each subagent focused on a single concern and gives the Dimension Scorecard independent per-dimension inputs. Added an explicit degradation ladder (7 → 5 → 3 agents) for platforms that cannot sustain 7 concurrent subagents; security, reliability, and AI-risks never collapse into other dimensions silently.

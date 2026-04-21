@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.4.2
+
+- Added official **Codex** support in README and `docs/installation.md`.
+- Documented Codex install paths as `~/.codex/prompts/inspect.md` for the command wrapper and `~/.codex/skills/agent-inspect/` for the skill.
+- Added Codex quick-verification commands and troubleshooting notes.
+- Clarified that Codex should use its native collaboration/subagent mechanism for the default 7-agent inspection, with the existing degraded-mode rules applying when concurrency is limited.
+- Expanded the AI-project focus paths in `skills/agent-inspect/SKILL.md` to include `.codex/` and `.agents/`.
+
 ## v0.4.1
 
 - Added official **Claude Code** support. The skill body was already platform-neutral; only install paths and docs needed to change.

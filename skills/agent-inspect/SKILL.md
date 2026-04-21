@@ -105,7 +105,7 @@ The default is complete coverage, not sampling. Sampling silently omits code; th
 
 When inspecting AI-assisted software projects, prioritize these common locations:
 
-1. `prompts/`, `agents/`, `skills/`, `commands/`, `.opencode/`, `.claude/`
+1. `prompts/`, `agents/`, `skills/`, `commands/`, `.opencode/`, `.claude/`, `.codex/`, `.agents/`
 2. Files whose names include model, tool, provider, prompt, eval, memory, or context
 3. Modules responsible for agent orchestration, tool routing, fallback, retry, or config loading
 

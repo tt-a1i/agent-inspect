@@ -2,7 +2,7 @@
 
 ## English
 
-`agent-inspect` is a global slash command (`/inspect`) for **OpenCode** and **Claude Code**. **Codex** support is planned.
+`agent-inspect` is a global slash command (`/inspect`) for **OpenCode**, **Claude Code**, and **Codex**.
 
 Its goal is simple:
 
@@ -20,7 +20,7 @@ If you want a repeatable command that answers the question, "After a lot of AI-a
 
 ## 中文
 
-`agent-inspect` 是一个全局 slash command（`/inspect`），支持 **OpenCode** 和 **Claude Code**，**Codex** 支持在规划中。
+`agent-inspect` 是一个全局 slash command（`/inspect`），支持 **OpenCode**、**Claude Code** 和 **Codex**。
 
 它的目标很简单：
 
@@ -40,7 +40,7 @@ If you want a repeatable command that answers the question, "After a lot of AI-a
 |----------|--------|---------------|
 | OpenCode | ✅ supported | `~/.config/opencode/commands/` + `~/.config/opencode/skills/` |
 | Claude Code | ✅ supported | `~/.claude/commands/` + `~/.claude/skills/` |
-| Codex | 🚧 planned | — (contributions welcome, see `docs/installation.md`) |
+| Codex | ✅ supported | `~/.codex/prompts/` + `~/.codex/skills/` |
 
 The skill body is platform-neutral: it does not depend on any OpenCode-specific API. Only the install paths differ.
 
@@ -64,7 +64,15 @@ cp commands/inspect.md ~/.claude/commands/inspect.md
 cp -R skills/agent-inspect ~/.claude/skills/agent-inspect
 ```
 
-If you install only `commands/inspect.md`, the setup is incomplete and `/inspect` will not have access to the full inspection method.
+**Codex**
+
+```bash
+mkdir -p ~/.codex/prompts ~/.codex/skills
+cp commands/inspect.md ~/.codex/prompts/inspect.md
+cp -R skills/agent-inspect ~/.codex/skills/agent-inspect
+```
+
+If you install only the command or prompt wrapper, the setup is incomplete and `/inspect` will not have access to the full inspection method.
 
 Then run it in your CLI:
 
@@ -145,7 +153,13 @@ cp commands/inspect.md ~/.claude/commands/inspect.md
 cp -R skills/agent-inspect ~/.claude/skills/agent-inspect
 ```
 
-**Codex**：暂未支持，规划中。欢迎贡献，详见 `docs/installation.md`。
+**Codex**
+
+```bash
+mkdir -p ~/.codex/prompts ~/.codex/skills
+cp commands/inspect.md ~/.codex/prompts/inspect.md
+cp -R skills/agent-inspect ~/.codex/skills/agent-inspect
+```
 
 任一平台装完后，在对应 CLI 中输入：
 

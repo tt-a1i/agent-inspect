@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/inspect.png" alt="agent-inspect multi-agent code inspection banner">
+</p>
+
 # agent-inspect
 
 [English](#english) | [中文](#中文)

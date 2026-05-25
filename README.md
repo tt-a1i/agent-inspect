@@ -171,8 +171,8 @@ If some subagents are queued, fail, or never return, `/inspect` does not pretend
 
 | 平台 | 状态 | 安装路径 |
 |------|------|----------|
-| OpenCode | ✅ supported | `~/.config/opencode/commands/` + `~/.config/opencode/skills/` |
-| Claude Code | ✅ supported | `~/.claude/commands/` + `~/.claude/skills/` |
+| OpenCode | ✅ 支持 | `~/.config/opencode/commands/` + `~/.config/opencode/skills/` |
+| Claude Code | ✅ 支持 | `~/.claude/commands/` + `~/.claude/skills/` |
 | Codex | ⚠️ 部分支持：支持全局 prompt 路径；不支持项目级 prompts（[codex#9848](https://github.com/openai/codex/issues/9848)） | `~/.codex/prompts/` + `~/.codex/skills/` |
 
 skill 本体是平台无关的，不依赖 OpenCode 专有 API。全局安装路径因平台而异；Codex 目前没有项目级 slash prompt 发现机制。
@@ -220,14 +220,14 @@ cp -R skills/agent-inspect ~/.codex/skills/agent-inspect
 1. 单命令入口：`/inspect`
 2. command 只是薄包装，`agent-inspect` skill 才是审计引擎
 3. 多子代理并行，不是单线程泛泛 review
-4. 输出偏审计报告风格，优先 findings、证据、风险和结论
+4. 输出偏审计报告风格，优先 findings（发现）、证据、风险和结论
 5. 输出语言跟随当前用户对话
-6. 子代理不可用时显式降级
+6. 子代理不可用时进入 degraded mode（降级模式）并显式披露
 7. 默认要求宿主平台原生子代理，而不是外部协作框架
 8. 在主上下文里协调执行
 9. 审查语气直接、技术化、证据优先，批评代码不攻击人
 10. 使用 ✅/❌/⚠️/🟢/🟡/🔴 提升可扫描性
-11. 默认覆盖 prompts、agents、tools、models、configs、evals 等 AI 项目风险
+11. 默认 coverage（覆盖范围）包括 prompts、agents、tools、models、configs、evals 等 AI 项目风险
 
 ### `/inspect` 会产出什么
 
@@ -248,7 +248,7 @@ cp -R skills/agent-inspect ~/.codex/skills/agent-inspect
 
 完整审计报告样例见 `examples/sample-output.md`。
 
-如果运行环境里部分子代理排队、失败或没有返回，`/inspect` 不会假装“完整并行审计已经完成”。它会进入降级模式，并明确说明哪些结论主要来自主线程补查，以及当前有哪些证据覆盖限制。
+如果运行环境里部分子代理排队、失败或没有返回，`/inspect` 不会假装“完整并行审计已经完成”。它会进入 degraded mode（降级模式），并明确说明哪些结论主要来自主线程补查，以及当前有哪些 coverage（证据覆盖）限制。
 
 ### 适用场景
 
@@ -260,10 +260,10 @@ cp -R skills/agent-inspect ~/.codex/skills/agent-inspect
 ### 设计原则
 
 1. 先证据，后结论
-2. 先 findings，后概览
+2. 先 findings（发现），后概览
 3. 默认只读，不擅自改代码
-4. 多维度覆盖，不只盯单一子系统
-5. 子代理失败或排队时必须显式披露证据覆盖限制
+4. 多维度 coverage（覆盖），不只盯单一子系统
+5. 子代理失败或排队时必须显式披露 coverage（证据覆盖）限制
 6. 直接指出问题，不用礼貌废话稀释严重性
 7. emoji 只用于增强扫描效率，不能替代路径、行号和证据
 

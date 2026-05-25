@@ -1,6 +1,14 @@
 # Sample Output
 
-**Scope:** full repository read, default exclusions applied (`node_modules/`, `dist/`, `build/`, `.next/`, lock files, binary fixtures).
+**Scope:** full repository read.
+
+Excluded paths/patterns:
+- dependency trees (`node_modules/`, `vendor/`, `.venv/`, `target/`, `Pods/`, `third_party/`)
+- lock files (`*.lock`, `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`, `poetry.lock`, `Cargo.lock`, `Gemfile.lock`, `go.sum`)
+- build output and minified bundles (`dist/`, `build/`, `.next/`, `out/`, `.turbo/`, coverage reports)
+- binary/media/data fixtures
+
+Override applied: none.
 
 **Subagents:** 7 / 7 returned (default mode). Complete coverage achieved; no files skipped.
 

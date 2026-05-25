@@ -1,5 +1,15 @@
 # Changelog
 
+> Note: tags are not yet pushed for v0.3.x/v0.4.x; install from `main` if you need the latest.
+
+## Unreleased
+
+- PR-1: Tightened the core methodology contract around subagent coverage, main-thread evidence verification, degraded mode, scorecard scoring, and sample output consistency.
+- PR-2: Aligned README and installation docs with the v0.4.x output structure, Codex global prompt path behavior, repository-root install commands, and sample report links.
+- PR-3: Skill internal rule hardening placeholder; fill in final details after PR-3 lands.
+- PR-4: Added maintenance and release-discipline documentation for changelog hygiene, contribution checks, update/uninstall/debug workflows, CI limitations, README Chinese terminology, and sample exclusion disclosure.
+- Added the README hero banner from `b613ffe`.
+
 ## v0.4.2
 
 - Added official **Codex** support in README and `docs/installation.md`.

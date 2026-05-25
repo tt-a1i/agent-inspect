@@ -140,6 +140,90 @@ ls ~/.codex/skills/agent-inspect/SKILL.md
 
 This only proves that the files exist. It does **not** prove that the CLI has loaded them, so still do the Quick Verification above.
 
+## Update
+
+Update by pulling the latest repository state, then reinstalling the command wrapper and skill using the same platform block you used for installation.
+
+```bash
+git pull
+```
+
+For OpenCode:
+
+```bash
+cp commands/inspect.md ~/.config/opencode/commands/inspect.md
+rm -rf ~/.config/opencode/skills/agent-inspect
+cp -R skills/agent-inspect ~/.config/opencode/skills/agent-inspect
+```
+
+For Claude Code:
+
+```bash
+cp commands/inspect.md ~/.claude/commands/inspect.md
+rm -rf ~/.claude/skills/agent-inspect
+cp -R skills/agent-inspect ~/.claude/skills/agent-inspect
+```
+
+For Codex:
+
+```bash
+cp commands/inspect.md ~/.codex/prompts/inspect.md
+rm -rf ~/.codex/skills/agent-inspect
+cp -R skills/agent-inspect ~/.codex/skills/agent-inspect
+```
+
+Restart or reload the host CLI after updating. Keep `commands/inspect.md` and `skills/agent-inspect/` from the same release or commit. If release tags lag behind the changelog, install from `main` when you need the latest documented behavior.
+
+## Uninstall
+
+Remove both the command wrapper and the skill. Removing only one leaves a confusing partial install behind.
+
+For OpenCode:
+
+```bash
+rm -f ~/.config/opencode/commands/inspect.md
+rm -rf ~/.config/opencode/skills/agent-inspect
+```
+
+For Claude Code:
+
+```bash
+rm -f ~/.claude/commands/inspect.md
+rm -rf ~/.claude/skills/agent-inspect
+```
+
+For Codex:
+
+```bash
+rm -f ~/.codex/prompts/inspect.md
+rm -rf ~/.codex/skills/agent-inspect
+```
+
+If you installed project-level overrides for OpenCode or Claude Code, also remove the matching project files:
+
+```bash
+rm -f .opencode/commands/inspect.md
+rm -rf .opencode/skills/agent-inspect
+rm -f .claude/commands/inspect.md
+rm -rf .claude/skills/agent-inspect
+```
+
+## CI / Non-Interactive Use
+
+`/inspect` is an interactive slash command that expects a host CLI session capable of loading the command wrapper, loading the `agent-inspect` skill, and dispatching native subagents. It is not currently packaged as a standalone non-interactive binary or script.
+
+For CI, the practical option today is to wrap the host CLI if that CLI supports non-interactive slash-command execution in your environment. The wrapper should fail the job when `/inspect` cannot load the skill, enters an unacceptable degraded mode, or reports blocking findings. This repository does not provide a supported CI wrapper yet, so treat CI usage as platform-specific glue rather than a guaranteed project feature.
+
+## Debug Failed Runs
+
+Common symptoms and checks:
+
+1. `/inspect` does not appear: check the command or prompt path for your platform, then restart or reload the CLI.
+2. The command appears but the skill is not found: check that `skills/agent-inspect/SKILL.md` exists under the matching platform skill directory.
+3. Codex project-level install does not work: Codex currently discovers custom slash prompts from `$CODEX_HOME/prompts`, not project `.codex/prompts` directories; see [codex#9848](https://github.com/openai/codex/issues/9848).
+4. The report claims degraded mode: inspect the report's degraded-mode disclosure before trusting coverage-sensitive conclusions.
+5. Output structure is missing the scorecard or evidence fields: compare the installed skill with this repository's `skills/agent-inspect/SKILL.md`, then reinstall both files from the same release or commit.
+
 ## Troubleshooting
 
 ### `/inspect` does not appear in the CLI

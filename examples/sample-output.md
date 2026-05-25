@@ -4,9 +4,9 @@
 
 Excluded paths/patterns:
 - dependency trees (`node_modules/`, `vendor/`, `.venv/`, `target/`, `Pods/`, `third_party/`)
-- lock files (`*.lock`, `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`, `poetry.lock`, `Cargo.lock`, `Gemfile.lock`, `go.sum`)
-- build output and minified bundles (`dist/`, `build/`, `.next/`, `out/`, `.turbo/`, coverage reports)
-- binary/media/data fixtures
+- lock files (`package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`, `poetry.lock`, `Cargo.lock`, `Gemfile.lock`, `go.sum`)
+- build and generated output (`dist/`, `build/`, `.next/`, `out/`, `.turbo/`, coverage reports)
+- binary assets, data fixtures, and media files
 
 Override applied: none.
 

@@ -23,6 +23,20 @@ Run a **read-only, multi-agent, multi-dimensional** code inspection for the curr
 5. Do not modify code unless the user explicitly asks for changes afterward.
 6. Match the output language to the language used by the user in the current conversation.
 
+### Dimension Boundaries
+
+Use these boundaries to reduce duplicate findings and make scorecard rationale specific:
+
+| Dimension | Owns | May reference | Must hand off |
+| --- | --- | --- | --- |
+| Architecture and module boundaries | Module boundaries, dependency direction, layering, ownership, coupling across subsystems. | Maintainability symptoms caused by structural coupling; extensibility limits caused by boundary choices. | Local readability or style-only issues to Maintainability; runtime failure modes to Reliability; auth/data exposure to Security. |
+| Maintainability | Readability, local complexity, naming, cohesion, reviewability, change isolation inside a module. | Architectural coupling when it explains why code is hard to change. | Public interface design to Architecture; missing regression coverage to Testing; AI prompt/tool-specific risks to AI-specific project risks. |
+| Extensibility | Plugin/provider seams, configuration extension points, migration paths, ability to add variants without core rewrites. | Architecture and maintainability evidence when it affects extension cost. | Current runtime breakage to Reliability; security policy expansion to Security; test harness capability to Testing. |
+| Reliability and error handling | Failure modes, fallback boundaries, retries, timeouts, observability, data-loss and partial-failure behavior. | Security or AI-tool failures when their user impact is reliability degradation. | Exploitability and trust boundaries to Security; prompt/model/eval ownership to AI-specific project risks; test adequacy to Testing. |
+| Security | Authentication, authorization, secret handling, injection surfaces, data exposure, unsafe defaults, supply-chain risk. | Reliability evidence when a failure mode creates a security impact. | Non-exploitable resilience issues to Reliability; generic dependency hygiene to Engineering quality unless it creates a concrete security risk. |
+| Testing and engineering quality | Test strategy, CI gates, reproducibility, lint/type/build checks, release hygiene, fixtures, coverage quality. | Any dimension's finding when tests would catch or prevent it. | Root product/design failure to the owning dimension; prompt/model eval risks to AI-specific project risks unless the issue is general CI wiring. |
+| AI-specific project risks | Prompt/tool routing/model selection/eval/agent config/memory/context risks that are specific to AI-assisted systems. | Reliability, Security, and Testing findings when AI behavior is the cause or amplifier. | Non-AI fallback bugs to Reliability; non-AI auth/data exposure to Security; generic test gaps to Testing. Use `cross_dimension_links` instead of duplicate scoring when a finding spans dimensions. |
+
 ## Agent Coordination
 
 Prefer the **host platform's native subagent mechanism launched from the primary command context** for parallel inspection. Do not run `/inspect` itself as a subtask; `/inspect` is the coordinator.
@@ -59,7 +73,7 @@ Never silently merge security, reliability, or AI-risks into another dimension. 
 
 Main-thread responsibilities:
 
-1. Review the current worktree and recent commits first. Scan commit trailers for `Co-authored-by:` or `Assisted-by:` markers that indicate AI-authored regions, and tell the relevant subagents to apply extra correctness scrutiny in those files. Do not invent heuristics (comment density, emoji, style) to guess AI authorship — trust commit trailers only.
+1. Review the current worktree and recent commits first. Scan commit trailers for `Co-authored-by:` or `Assisted-by:` markers that indicate AI-authored regions, and tell the relevant subagents to apply extra correctness scrutiny in those files. Do not invent heuristics (comment density, emoji, style) to guess AI authorship — trust commit trailers only. Commit trailers identify candidates for extra AI-attribution scrutiny only; they do NOT restrict AI Project Focus. All files matching `prompts/`, `agents/`, `skills/`, `commands/`, `.opencode/`, `.claude/`, `.codex/`, or `.agents/` paths must still receive AI-risk inspection regardless of trailer presence.
 
 2. Determine the inspection scope. Apply the default exclusions from Coverage Rules §3 (dependency trees, lock files, build output, binary assets) and list every excluded path or pattern at the top of the report. Every file in the remaining scope must be fully read by at least one coverage owner. Dimension subagents may reread any file needed for their dimension; do not block cross-dimension review just because another subagent already read the file.
 
@@ -151,7 +165,7 @@ Use a blunt, kernel-style technical review voice: direct, specific, evidence-bac
 
 Use lightweight visual markers to make the report scannable, without replacing evidence.
 
-Recommended markers:
+Marker conventions:
 
 - ✅ Confirmed strength or verified positive signal
 - ❌ Confirmed issue or broken behavior
@@ -162,11 +176,14 @@ Recommended markers:
 
 Rules:
 
-1. Use markers in section headers, finding bullets, or short status labels.
-2. Do not put emoji in every sentence.
-3. Do not let emoji replace file paths, line numbers, or technical explanation.
-4. Severity markers must match the finding severity. Do not label a minor nit as 🔴.
-5. Keep the report readable in plain text terminals.
+1. Markers are scanability aids, not required data fields, and they never replace required finding fields or evidence.
+2. The `Severity` field already contains the authoritative severity value: Critical / High / Medium / Low / Info. Emoji markers are optional additions.
+3. Marker absence is not a format failure.
+4. When markers are used, put them in section headers, finding bullets, or short status labels.
+5. Do not put emoji in every sentence.
+6. Do not let emoji replace file paths, line numbers, or technical explanation.
+7. Severity markers must match the finding severity. Do not label a minor nit as 🔴.
+8. Keep the report readable in plain text terminals.
 
 ## Output Format
 
@@ -189,7 +206,7 @@ Each scorecard entry must contain:
 
 - **Dimension name**
 - **Score** (1-5, named level)
-- **Rationale**: one or two sentences citing at least one finding ID (e.g. `H-1`, `M-2`) or explicitly naming the source files that supported the score when no findings exist in the dimension.
+- **Rationale**: one or two sentences citing the finding ID or positive evidence ID that triggered the score (e.g. `H-1`, `M-2`, `P-1`). Do not rely on broad adjectives such as "healthy" or "fragile" without the triggering evidence ID.
 - **Scored by**: the responsible subagent, followed by `main-thread-verified` or `main-thread-override`. When the main thread overrode the subagent's proposal, show both scores (e.g. `Subagent-reliability proposed 🟡 3; main-thread override to 🟠 2`) with a one-sentence reason. Do not silently reconcile.
 
 Scoring rules:
@@ -200,18 +217,29 @@ Scoring rules:
 4. If a dimension was merged into another due to the Degradation Ladder, the merged entry must say so (e.g. `merged into Subagent-structural — see Executive Summary`).
 5. If over-budget degraded mode limited coverage in a dimension, the entry must state which files were inspected in full and mark the score as based on partial coverage.
 
+Score Determination Matrix:
+
+- ✅ **5 — Exemplary**: complete coverage; no open finding in the dimension; at least two reproducible positive evidence IDs (for example `P-1`, `P-2`) showing mechanisms worth copying.
+- 🟢 **4 — Healthy**: complete coverage; no High or Critical finding in the dimension; every Medium finding affecting the score is `main-thread-verified` or `cross-subagent-corroborated`.
+- 🟡 **3 — Functional but fragile**: complete coverage with at least one unverified score-affecting Medium finding, or partial coverage that is explicitly disclosed in Executive Summary / Residual Risks and does not hide High or Critical evidence.
+- 🟠 **2 — Significant debt**: two or more High findings in the dimension, one High finding crossing a core path, or the same anti-pattern repeated across multiple files.
+- 🔴 **1 — Critical debt**: any blocking Critical finding, or coverage severely missing and undisclosed for the dimension.
+
+Cross-impact rule: the same finding may affect multiple dimensions, but each affected scorecard rationale must explain a different failure mode. Do not copy the same rationale across dimensions; use `cross_dimension_links` to connect the shared evidence.
+
 ### Top Findings
 Order findings by severity:
 - Critical
 - High
 - Medium
 - Low
+- Info
 
 Each finding must include the following fields:
 
 - **ID**: a short identifier such as `H-1`, `M-2`, so the Verdict, Residual Risks, or other findings can reference it.
 - **Title**: one-line problem statement.
-- **Severity**: Critical / High / Medium / Low.
+- **Severity**: Critical / High / Medium / Low / Info.
 - **Blocking**: `yes` if the problem should block merge or release as-is, `no` otherwise. Severity and blocking are related but not identical — a High finding can be non-blocking if well scoped, and a Medium can be blocking if it masks data loss or hides real bugs behind broad fallback.
 - **Location**: file path + concrete line range.
 - **Evidence**: quote 3-15 lines of the actual source that triggers the finding, with the file path and line range repeated above the snippet. If the finding is about a missing behavior, quote the closest relevant source and explain what is not there. Prose summaries alone are not evidence. This is the single strongest defense against hallucinated findings: the reader must be able to verify the claim against real code without opening the repository.

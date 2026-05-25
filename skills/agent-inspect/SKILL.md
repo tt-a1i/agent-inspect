@@ -44,10 +44,16 @@ Use 7 parallel subagents by default, one per dimension. This keeps each subagent
 
 ### Degradation Ladder
 
-If the host platform cannot sustain 7 concurrent subagents reliably (quota limits, queuing, repeated timeouts), degrade in ordered steps rather than dropping any dimension:
+If the host platform cannot sustain 7 concurrent subagents reliably, degrade in ordered steps rather than dropping any dimension. Use these trigger conditions; do not invent a looser fallback:
+
+1. Start in **7-agent mode**. If two or more subagents fail to launch, are rejected by quota, or remain queued / silent for more than 5 minutes, cancel the incomplete fan-out and retry in 5-agent mode.
+2. In **5-agent mode**, if any subagent fails to launch, is rejected by quota, or remains queued / silent for more than 5 minutes, cancel the incomplete fan-out and retry in 3-agent mode.
+3. In **3-agent mode**, if any subagent fails to launch, is rejected by quota, or remains queued / silent for more than 5 minutes, stop using subagents and enter single-thread degraded mode.
+4. If the host runtime has no reliable native subagent API at all, skip retries and enter single-thread degraded mode immediately.
 
 - **5-agent mode**: merge architecture, maintainability, and extensibility into one structural subagent. Keep reliability, security, testing, and AI-risks separate.
 - **3-agent mode**: fall back to a structural / reliability+security+AI-risks / testing split. Use only when 5-agent mode still fails.
+- **single-thread degraded mode**: run the inspection in the main thread only. The Executive Summary must state `subagent count: 0, single-thread degraded`; every Dimension Scorecard entry must use `Scored by: main-thread-only degraded`; Residual Risks must explain that conclusions came from main-thread inspection instead of independent subagent review.
 
 Never silently merge security, reliability, or AI-risks into another dimension. If platform limits force such a merge, state it in the Executive Summary and mark the affected Dimension Scorecard entries with the merge note. The current subagent count must be stated explicitly in the Executive Summary; do not pretend the default 7-agent inspection ran when it did not.
 
@@ -55,38 +61,44 @@ Main-thread responsibilities:
 
 1. Review the current worktree and recent commits first. Scan commit trailers for `Co-authored-by:` or `Assisted-by:` markers that indicate AI-authored regions, and tell the relevant subagents to apply extra correctness scrutiny in those files. Do not invent heuristics (comment density, emoji, style) to guess AI authorship — trust commit trailers only.
 
-2. Determine the inspection scope. Apply the default exclusions from Coverage Rules §3 (dependency trees, lock files, build output, binary assets) and list every excluded path or pattern at the top of the report. Every file in the remaining scope must be fully read by exactly one subagent — the one owning its dimension.
+2. Determine the inspection scope. Apply the default exclusions from Coverage Rules §3 (dependency trees, lock files, build output, binary assets) and list every excluded path or pattern at the top of the report. Every file in the remaining scope must be fully read by at least one coverage owner. Dimension subagents may reread any file needed for their dimension; do not block cross-dimension review just because another subagent already read the file.
 
-3. If the repository is too large to cover completely within the host platform's context or turn budget, enter **over-budget degraded mode**:
+3. Maintain a coverage ledger during fan-out and fan-in: `file -> reader(s) -> dimension(s)`. The ledger must show which subagent or main-thread pass fully read each in-scope file and which dimension used that file as direct evidence. Dimension Scorecard entries may cite only files directly read by that dimension subagent or explicitly verified by the main thread.
+
+4. If the repository is too large to cover completely within the host platform's context or turn budget, enter **over-budget degraded mode**:
    - identify core files first and inspect those completely
    - list every file that was NOT fully read in Residual Risks, with absolute paths, not summaries
    - do not silently sample or extrapolate
    - do not claim "complete evaluation" in the Executive Summary or Verdict while in this mode
 
-4. After subagents return, deduplicate findings across subagents on the triple `(file, line range, category)`. When two subagents flag the same region from different angles — for example, the architecture subagent calls out structural debt in a file that the security subagent also flags for an auth gap — merge them into a single finding whose `Recommendation` covers both concerns and record the other subagent's view in `cross_dimension_links`, instead of emitting duplicate entries. Dimension-split subagents will overlap; an unmerged report dilutes signal.
+5. After subagents return, deduplicate findings across subagents on the triple `(file, line range, category)`. When two subagents flag the same region from different angles — for example, the architecture subagent calls out structural debt in a file that the security subagent also flags for an auth gap — merge them into a single finding whose `Recommendation` covers both concerns and record the other subagent's view in `cross_dimension_links`, instead of emitting duplicate entries. Dimension-split subagents will overlap; an unmerged report dilutes signal.
 
-5. Assemble the Dimension Scorecard using the scores proposed by each subagent. After direct source verification, adjust any score that the evidence does not support. When the main-thread-verified score differs from the subagent's proposal, show both scores in the scorecard entry with a one-sentence reason; do not silently reconcile.
+6. Assemble the Dimension Scorecard using the scores proposed by each subagent. After direct source verification, adjust any score that the evidence does not support. When the main-thread-verified score differs from the subagent's proposal, show both scores in the scorecard entry with a one-sentence reason; do not silently reconcile.
 
-6. After dedup and scorecard assembly, directly verify at least 3 classes of key evidence:
+7. After dedup and scorecard assembly, directly verify at least 3 classes of key evidence:
    - The source location of one high-severity finding
    - One configuration or script location related to testing or engineering quality
    - One finding you consider most debatable or most likely to be a false positive
 
-7. If main-thread verification conflicts with a subagent conclusion or score, explicitly report the conflict instead of silently resolving it.
+8. Critical and High findings in Top Findings must be `main-thread-verified` or `cross-subagent-corroborated`. They cannot be `subagent-only`.
 
-8. If some subagents are queued, fail, time out, or never return, do not pretend that a full parallel inspection completed. Enter **subagent degraded mode** and explicitly report:
+9. Medium findings reported by only one subagent may enter Top Findings only with `Confidence: low` and an explicit explanation of what was not main-thread verified. Prefer moving unverified Medium findings to Residual Risks. Low findings may be `subagent-only`, but their confidence must not exceed `low`.
+
+10. If main-thread verification conflicts with a subagent conclusion or score, explicitly report the conflict instead of silently resolving it.
+
+11. If some subagents are queued, fail, time out, or never return, do not pretend that a full parallel inspection completed. Enter **subagent degraded mode** and explicitly report:
    - Which subagents returned successfully
    - Which subagents did not return
    - Which conclusions mainly come from main-thread verification
    - Which dimensions were merged via the degradation ladder due to concurrency limits
 
-9. If the runtime does not support reliable native parallel subagents at all, continue with a read-only inspection only in degraded mode, and say so explicitly in the Executive Summary or Residual Risks.
+12. If the runtime does not support reliable native parallel subagents at all, continue with a read-only inspection only in single-thread degraded mode, and say so explicitly in the Executive Summary and Residual Risks.
 
 ## Coverage Rules
 
 The default is complete coverage, not sampling. Sampling silently omits code; this skill treats that as a failure mode, not a shortcut.
 
-1. Every file in the inspection scope must be fully read by exactly one subagent (the one owning its dimension). No file is skipped because it is "too long". Files that do not fit in a single pass are split into overlapping ranges handled by the same subagent for continuity; do not summarize-then-infer over a range that was not directly read.
+1. Every file in the inspection scope must be fully read by at least one coverage owner. A coverage owner may be a dimension subagent or the main thread in degraded mode. Dimension subagents may reread overlapping files when their dimension requires direct evidence. No file is skipped because it is "too long". Files that do not fit in a single pass are split into overlapping ranges handled by the same coverage owner for continuity; do not summarize-then-infer over a range that was not directly read.
 
 2. A single pass should comfortably fit in the subagent's context without relying on long-context retrieval tricks. The precise token budget depends on the host platform and model; the rule is "read in full or split deliberately", not a fixed line count.
 
@@ -100,6 +112,8 @@ The default is complete coverage, not sampling. Sampling silently omits code; th
 4. If the repository is too large to cover completely within the host platform's context or turn budget, enter **over-budget degraded mode** (see Main-thread responsibilities §3). In this mode, every file that was NOT fully read is listed with its absolute path in Residual Risks; the Executive Summary and Verdict must not claim "complete evaluation".
 
 5. Dimension Scorecard entries must be based on files actually read in full. Do not infer a dimension score from directory structure or file names alone; if a dimension has no directly-inspected evidence, say so in its scorecard entry.
+
+6. The final report must include a concise coverage ledger summary. Use the shape `file -> reader(s) -> dimension(s)`. If the full ledger is too large for the report body, include a summary by directory and list the complete ledger as an artifact; do not omit ledger coverage entirely.
 
 ## AI Project Focus
 
@@ -203,8 +217,8 @@ Each finding must include the following fields:
 - **Evidence**: quote 3-15 lines of the actual source that triggers the finding, with the file path and line range repeated above the snippet. If the finding is about a missing behavior, quote the closest relevant source and explain what is not there. Prose summaries alone are not evidence. This is the single strongest defense against hallucinated findings: the reader must be able to verify the claim against real code without opening the repository.
 - **Why it matters**: the concrete risk or impact. Do not soften with "this could be improved"; state what fails and under what condition.
 - **Recommendation**: the specific fix direction. If multiple fixes are viable, list them in order of preference. A finding without a recommendation is an observation, not an audit result.
-- **Confidence**: `high` / `medium` / `low`. Use `low` for inferential findings that could not be directly verified; do not promote inference to certainty.
-- **Verification**: one of `main-thread-verified` (the main thread opened the source and confirmed), `cross-subagent-corroborated` (two or more subagents independently reported the same issue), or `subagent-only` (a single subagent reported it and the main thread did not re-check). This pushes the SKILL's existing "main thread verifies ≥3 classes" discipline down to per-finding transparency. In the default 7-agent mode (one subagent per dimension), `cross-subagent-corroborated` specifically means the issue genuinely spans dimensions — that is stronger signal than in 3-agent mode where overlapping dimensions made corroboration routine.
+- **Confidence**: `high` / `medium` / `low`. Use `low` for inferential findings that could not be directly verified; do not promote inference to certainty. Medium findings that remain `subagent-only` must use `low`.
+- **Verification**: one of `main-thread-verified` (the main thread opened the source and confirmed), `cross-subagent-corroborated` (two or more subagents independently reported the same issue), or `subagent-only` (a single subagent reported it and the main thread did not re-check). Critical and High findings cannot use `subagent-only`. Medium `subagent-only` findings should usually move to Residual Risks; if kept in Top Findings, they must use `Confidence: low` and name the missing verification. This pushes the SKILL's existing "main thread verifies ≥3 classes" discipline down to per-finding transparency. In the default 7-agent mode (one subagent per dimension), `cross-subagent-corroborated` specifically means the issue genuinely spans dimensions — that is stronger signal than in 3-agent mode where overlapping dimensions made corroboration routine.
 - **CWE** (optional, security findings only): a CWE ID when the finding maps cleanly to [CWE Top 25](https://cwe.mitre.org/top25/). Skip rather than guess; incorrect CWE IDs are worse than none.
 - **cross_dimension_links** (optional): IDs of related findings from other subagents that were merged into or overlap with this one.
 

@@ -48,10 +48,15 @@
 
 🔴 **H-1 — `frontend/src/components/MapView.tsx` owns four unrelated responsibilities in one 6 200-line file.**
 
-- Severity: High · Blocking: no · Confidence: high · Verification: main-thread-verified
-- Location: `frontend/src/components/MapView.tsx:1-6200` (whole file inspected via split passes)
+- **ID**: H-1
+- **Title**: `frontend/src/components/MapView.tsx` owns four unrelated responsibilities in one 6 200-line file.
+- **Severity**: High
+- **Blocking**: no
+- **Location**: `frontend/src/components/MapView.tsx:1-6200` (whole file inspected via split passes)
+- **Confidence**: high
+- **Verification**: main-thread-verified
 
-Evidence (`frontend/src/components/MapView.tsx:1-40`, top of file):
+**Evidence** (`frontend/src/components/MapView.tsx:1-40`, top of file):
 
 ```tsx
 export function MapView(props: MapViewProps) {
@@ -66,7 +71,7 @@ export function MapView(props: MapViewProps) {
   // ...
 ```
 
-Evidence (`frontend/src/components/MapView.tsx:4820-4835`, mid-file — same four concerns still interleaved):
+**Evidence** (`frontend/src/components/MapView.tsx:4820-4835`, mid-file — same four concerns still interleaved):
 
 ```tsx
 function handleCanvasClick(e: MouseEvent) {
@@ -80,17 +85,22 @@ function handleCanvasClick(e: MouseEvent) {
 
 File totals 6 200 lines (`wc -l`); the four responsibilities above interleave throughout the split passes that covered the whole file.
 
-Why it matters: four distinct concerns share one module. Unrelated behavior changes land in the same diff and cannot be isolated for review, rollback, or regression bisection. Every future map change has a higher chance of accidental behavior drift.
+**Why it matters**: four distinct concerns share one module. Unrelated behavior changes land in the same diff and cannot be isolated for review, rollback, or regression bisection. Every future map change has a higher chance of accidental behavior drift.
 
-Recommendation: extract layer coordination (`useLayerRegistry`) and panel sync (`usePanelSync`) into sibling components that only talk to `MapView` through props; keep the root at lifecycle and interaction routing. Do this before adding new features in this file.
+**Recommendation**: extract layer coordination (`useLayerRegistry`) and panel sync (`usePanelSync`) into sibling components that only talk to `MapView` through props; keep the root at lifecycle and interaction routing. Do this before adding new features in this file.
 
 🔴 **H-2 — `backend/app/services/overview.py` tangles fallback, aggregation, and output shaping; broad `except` hides real failures.**
 
-- Severity: High · Blocking: yes · Confidence: high · Verification: cross-subagent-corroborated (architecture + reliability)
-- Location: `backend/app/services/overview.py:450-930`
-- CWE: [CWE-755](https://cwe.mitre.org/data/definitions/755.html) (Improper Handling of Exceptional Conditions)
+- **ID**: H-2
+- **Title**: `backend/app/services/overview.py` tangles fallback, aggregation, and output shaping; broad `except` hides real failures.
+- **Severity**: High
+- **Blocking**: yes
+- **Location**: `backend/app/services/overview.py:450-930`
+- **Confidence**: high
+- **Verification**: cross-subagent-corroborated (architecture + reliability)
+- **CWE**: [CWE-755](https://cwe.mitre.org/data/definitions/755.html) (Improper Handling of Exceptional Conditions)
 
-Evidence (`backend/app/services/overview.py:612-640`):
+**Evidence** (`backend/app/services/overview.py:612-640`):
 
 ```python
 try:
@@ -102,18 +112,23 @@ except Exception:
     return EMPTY_OVERVIEW
 ```
 
-Why it matters: a bare `except Exception` at this layer swallows programmer errors (e.g. `KeyError` from a typo) and upstream transport failures indistinguishably, and returns the same empty payload as a legitimately empty region. Observability, alerting, and user-visible "no data here" states all collapse into one branch. This is how bugs get hidden behind "resilience".
+**Why it matters**: a bare `except Exception` at this layer swallows programmer errors (e.g. `KeyError` from a typo) and upstream transport failures indistinguishably, and returns the same empty payload as a legitimately empty region. Observability, alerting, and user-visible "no data here" states all collapse into one branch. This is how bugs get hidden behind "resilience".
 
-Recommendation (in preferred order): (a) narrow the except to transport/timeout errors only and re-raise the rest so tests and sentry catch them; (b) split fallback, aggregation, and output shaping into three functions so each one's failure mode is localized; (c) return a discriminated result (`Empty | Degraded | Ok`) so the UI can distinguish "nothing here" from "upstream down".
+**Recommendation** (in preferred order): (a) narrow the except to transport/timeout errors only and re-raise the rest so tests and sentry catch them; (b) split fallback, aggregation, and output shaping into three functions so each one's failure mode is localized; (c) return a discriminated result (`Empty | Degraded | Ok`) so the UI can distinguish "nothing here" from "upstream down".
 
 #### Medium
 
 🟡 **M-1 — `frontend/src/lib/api.ts` collaborator setup depends on README accuracy.**
 
-- Severity: Medium · Blocking: no · Confidence: medium · Verification: subagent-only
-- Location: `frontend/src/lib/api.ts:11-15`
+- **ID**: M-1
+- **Title**: `frontend/src/lib/api.ts` collaborator setup depends on README accuracy.
+- **Severity**: Medium
+- **Blocking**: no
+- **Location**: `frontend/src/lib/api.ts:11-15`
+- **Confidence**: medium
+- **Verification**: main-thread-verified
 
-Evidence (`frontend/src/lib/api.ts:11-15`):
+**Evidence** (`frontend/src/lib/api.ts:11-15`):
 
 ```ts
 export const API_BASE =
@@ -122,15 +137,21 @@ export const API_BASE =
   "http://localhost:8000";
 ```
 
-Why it matters: the implementation is cleaner than before, but the default URL and its relationship to README instructions mean that if docs drift, new collaborators hit integration failures that *look* like backend bugs. The code silently encodes a contract that lives elsewhere.
+**Why it matters**: the implementation is cleaner than before, but the default URL and its relationship to README instructions mean that if docs drift, new collaborators hit integration failures that *look* like backend bugs. The code silently encodes a contract that lives elsewhere.
 
-Recommendation: add a startup log line that echoes the resolved `API_BASE` and its source (env var vs. default), so the contract becomes self-describing at runtime instead of doc-dependent.
+**Recommendation**: add a startup log line that echoes the resolved `API_BASE` and its source (env var vs. default), so the contract becomes self-describing at runtime instead of doc-dependent.
 
 🟡 **M-2 — `backend/app/services/event_geocoder.py` degraded-mode boundary survives only by convention.**
 
-- Severity: Medium · Blocking: no · Confidence: medium · Verification: main-thread-verified
+- **ID**: M-2
+- **Title**: `backend/app/services/event_geocoder.py` degraded-mode boundary survives only by convention.
+- **Severity**: Medium
+- **Blocking**: no
+- **Location**: `backend/app/services/event_geocoder.py:130-170`
+- **Confidence**: medium
+- **Verification**: main-thread-verified
 
-Evidence (`backend/app/services/event_geocoder.py:130-170`, abbreviated):
+**Evidence** (`backend/app/services/event_geocoder.py:130-170`, abbreviated):
 
 ```python
 def geocode(event):
@@ -143,9 +164,9 @@ def geocode(event):
         return None
 ```
 
-Why it matters: transient failures and programming errors are better separated than before, but the broad `except Exception` is one refactor away from reintroducing the same "hide the bug" pattern as H-2. Future maintainers cannot tell from the code alone that the second branch is intended to be a last-resort, not a general safety net.
+**Why it matters**: transient failures and programming errors are better separated than before, but the broad `except Exception` is one refactor away from reintroducing the same "hide the bug" pattern as H-2. Future maintainers cannot tell from the code alone that the second branch is intended to be a last-resort, not a general safety net.
 
-Recommendation: replace the trailing `except Exception` with an explicit list of known failure classes, and let anything else crash the task so it surfaces in error reporting. Same root pattern as H-2 — fixing one without the other leaves the broader invariant fragile.
+**Recommendation**: replace the trailing `except Exception` with an explicit list of known failure classes, and let anything else crash the task so it surfaces in error reporting. Same root pattern as H-2 — fixing one without the other leaves the broader invariant fragile.
 
 ### Strengths
 

@@ -30,13 +30,15 @@ If you want a repeatable command that answers the question, "After a lot of AI-a
 |----------|--------|---------------|
 | OpenCode | ✅ supported | `~/.config/opencode/commands/` + `~/.config/opencode/skills/` |
 | Claude Code | ✅ supported | `~/.claude/commands/` + `~/.claude/skills/` |
-| Codex | ✅ supported | `~/.codex/prompts/` + `~/.codex/skills/` |
+| Codex | ⚠️ partial: global prompt path supported; project-level prompts are not supported ([codex#9848](https://github.com/openai/codex/issues/9848)) | `~/.codex/prompts/` + `~/.codex/skills/` |
 
-The skill body is platform-neutral: it does not depend on any OpenCode-specific API. Only the install paths differ.
+The skill body is platform-neutral: it does not depend on any OpenCode-specific API. Global install paths differ, and Codex currently has no project-scoped slash prompt discovery.
 
 ### Quick Start
 
 Install both the command wrapper and the skill from the same release. Pick the block that matches your platform.
+
+> Run from the repository root after `git clone` (or set `$REPO=/path/to/agent-inspect` and prefix source paths with `$REPO/`).
 
 **OpenCode**
 
@@ -95,10 +97,13 @@ Running:
 produces a structured audit report with:
 
 1. Executive Summary
-2. Top Findings
-3. Strengths
-4. Residual Risks
-5. Verdict
+2. Dimension Scorecard
+3. Top Findings
+4. Strengths
+5. Residual Risks
+6. Verdict
+
+See `examples/sample-output.md` for a full audit report sample.
 
 If some subagents are queued, fail, or never return, `/inspect` does not pretend that a complete parallel inspection finished. It enters degraded mode and explicitly states which conclusions mainly come from main-thread verification and which evidence-coverage limits apply.
 
@@ -168,13 +173,15 @@ If some subagents are queued, fail, or never return, `/inspect` does not pretend
 |------|------|----------|
 | OpenCode | ✅ supported | `~/.config/opencode/commands/` + `~/.config/opencode/skills/` |
 | Claude Code | ✅ supported | `~/.claude/commands/` + `~/.claude/skills/` |
-| Codex | ✅ supported | `~/.codex/prompts/` + `~/.codex/skills/` |
+| Codex | ⚠️ 部分支持：支持全局 prompt 路径；不支持项目级 prompts（[codex#9848](https://github.com/openai/codex/issues/9848)） | `~/.codex/prompts/` + `~/.codex/skills/` |
 
-skill 本体是平台无关的，不依赖 OpenCode 专有 API。差异主要在安装路径。
+skill 本体是平台无关的，不依赖 OpenCode 专有 API。全局安装路径因平台而异；Codex 目前没有项目级 slash prompt 发现机制。
 
 ### 快速开始
 
 同一版本的 command wrapper 和 skill 需要一起安装。按你的平台选择对应命令。
+
+> 请在 `git clone` 后的仓库根目录运行这些命令（或设置 `$REPO=/path/to/agent-inspect`，并给源路径加上 `$REPO/` 前缀）。
 
 **OpenCode**
 
@@ -232,11 +239,14 @@ cp -R skills/agent-inspect ~/.codex/skills/agent-inspect
 
 会生成一份结构化审计报告，包含：
 
-1. Executive Summary
-2. Top Findings
-3. Strengths
-4. Residual Risks
-5. Verdict
+1. Executive Summary（执行摘要）
+2. Dimension Scorecard（维度评分卡）
+3. Top Findings（主要发现）
+4. Strengths（优点）
+5. Residual Risks（剩余风险）
+6. Verdict（结论）
+
+完整审计报告样例见 `examples/sample-output.md`。
 
 如果运行环境里部分子代理排队、失败或没有返回，`/inspect` 不会假装“完整并行审计已经完成”。它会进入降级模式，并明确说明哪些结论主要来自主线程补查，以及当前有哪些证据覆盖限制。
 

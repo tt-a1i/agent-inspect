@@ -5,13 +5,13 @@
 1. `commands/inspect.md` — the `/inspect` slash command wrapper
 2. `skills/agent-inspect/SKILL.md` — the inspection engine
 
-Installing only the command or prompt wrapper is an incomplete setup and does not provide the full inspection method. The skill body is platform-neutral; only the install paths differ per platform.
+Installing only the command or prompt wrapper is an incomplete setup and does not provide the full inspection method. The skill body is platform-neutral; global install paths differ per platform, and Codex currently has no project-scoped slash prompt discovery.
 
 | Platform | Status | Command path | Skill path |
 |----------|--------|--------------|------------|
 | [OpenCode](#install-on-opencode) | ✅ supported | `~/.config/opencode/commands/inspect.md` | `~/.config/opencode/skills/agent-inspect/` |
 | [Claude Code](#install-on-claude-code) | ✅ supported | `~/.claude/commands/inspect.md` | `~/.claude/skills/agent-inspect/` |
-| [Codex](#install-on-codex) | ✅ supported | `~/.codex/prompts/inspect.md` | `~/.codex/skills/agent-inspect/` |
+| [Codex](#install-on-codex) | ⚠️ partial: global prompt path supported; project-level prompts are not supported ([codex#9848](https://github.com/openai/codex/issues/9848)) | `~/.codex/prompts/inspect.md` | `~/.codex/skills/agent-inspect/` |
 
 ## Install on OpenCode
 
@@ -28,6 +28,8 @@ Installing only the command or prompt wrapper is an incomplete setup and does no
 If you are unsure whether your OpenCode version supports custom commands, check the official commands documentation first.
 
 ### Steps
+
+Run from the repository root after `git clone` (or set `$REPO=/path/to/agent-inspect` and prefix source paths with `$REPO/`).
 
 ```bash
 mkdir -p ~/.config/opencode/commands ~/.config/opencode/skills
@@ -60,6 +62,8 @@ Project-level commands and skills override global ones. Keep the command and ski
 ```
 
 ### Steps
+
+Run from the repository root after `git clone` (or set `$REPO=/path/to/agent-inspect` and prefix source paths with `$REPO/`).
 
 ```bash
 mkdir -p ~/.claude/commands ~/.claude/skills
@@ -94,6 +98,8 @@ Project-level commands and skills override user-level ones.
 ```
 
 ### Steps
+
+Run from the repository root after `git clone` (or set `$REPO=/path/to/agent-inspect` and prefix source paths with `$REPO/`).
 
 ```bash
 mkdir -p ~/.codex/prompts ~/.codex/skills
@@ -146,18 +152,19 @@ This only proves that the files exist. It does **not** prove that the CLI has lo
 
 1. Open the installed file and confirm it matches the repository version in `commands/inspect.md`
 2. Confirm the installed skill matches the repository version in `skills/agent-inspect/SKILL.md`
-3. Check whether a project-level override (`.opencode/`, `.claude/`, or `.codex/`) is shadowing the global version
+3. Check whether a project-level override (`.opencode/` or `.claude/`) is shadowing the global version
 4. If subagents are queued, fail, or time out, `/inspect` may enter degraded mode — the report should explicitly disclose evidence-coverage limitations. See the skill's Degradation Ladder for the 7 → 5 → 3 agent fallback.
 
 ### I only want this command for one project
 
-Use project-level paths instead of global paths:
+Use project-level paths instead of global paths for OpenCode and Claude Code:
 
 ```text
 .opencode/commands/inspect.md   +  .opencode/skills/agent-inspect/SKILL.md     # OpenCode
 .claude/commands/inspect.md     +  .claude/skills/agent-inspect/SKILL.md       # Claude Code
-.codex/prompts/inspect.md       +  .codex/skills/agent-inspect/SKILL.md        # Codex
 ```
+
+Codex currently has no project-scoped slash prompt discovery; install the prompt globally at `~/.codex/prompts/inspect.md`.
 
 ## Notes
 
@@ -166,3 +173,4 @@ Use project-level paths instead of global paths:
 3. The skill asks the host CLI to use native parallel subagents. On OpenCode, Claude Code, and Codex this means the host platform's built-in mechanism — not external multi-agent tools.
 4. It is optimized for audit-style output, not automatic remediation.
 5. Degraded mode (both subagent-degraded and over-budget-degraded) belongs to the skill, not the command wrapper.
+6. Codex currently has no project-scoped slash prompt discovery; install the prompt globally.

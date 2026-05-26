@@ -1,14 +1,14 @@
 # Changelog
 
-> Note: tags are not yet pushed for v0.3.x/v0.4.x; install from `main` if you need the latest.
+> Note: v0.3.x and v0.4.0-v0.4.2 are historical untagged releases; tags resume at v0.4.3.
 
-## Unreleased
+## v0.4.3
 
-- PR-1: Tightened the core methodology contract around subagent coverage, main-thread evidence verification, degraded mode, scorecard scoring, and sample output consistency.
-- PR-2: Aligned README and installation docs with the v0.4.x output structure, Codex global prompt path behavior, repository-root install commands, and sample report links.
-- PR-3: Added dimension boundaries, a Score Determination Matrix, cross-impact rationale rules, marker conventions, and commit-trailer clarification in `SKILL.md`.
-- PR-4: Added maintenance and release-discipline documentation for changelog hygiene, contribution checks, update/uninstall/debug workflows, CI limitations, README Chinese terminology, and sample exclusion disclosure.
-- Added the README hero banner from `b613ffe`.
+- Tightened the core methodology contract: subagent coverage model (every in-scope file needs at least one coverage owner; dimension subagents may re-read), main-thread evidence verification (Critical/High findings cannot be `subagent-only`), degraded-mode state machine (concrete 7→5→3→single-thread thresholds), and command-wrapper hard-fail when the skill is unavailable.
+- Aligned README and installation docs with the v0.4.x output structure: added `Dimension Scorecard` to the produced output list, linked the sample report, fixed the Codex install path to global-only (`~/.codex/prompts/`) per [openai/codex#9848](https://github.com/openai/codex/issues/9848), and added a "run from the repository root" precondition to every install snippet.
+- Added dimension boundaries, a Score Determination Matrix, cross-impact rationale rules, marker conventions, and commit-trailer clarification in `SKILL.md`.
+- Added maintenance and release-discipline documentation: Update / Uninstall / CI / Debug Failed Runs sections in `docs/installation.md`, expanded PR checklist in `CONTRIBUTING.md`, unified Chinese terminology in README, and itemized default exclusions in the sample report.
+- Added the README hero banner.
 
 ## v0.4.2
 
